@@ -14,49 +14,48 @@ app.use(cors());
 app.use(bodyParser.json());
 
 exports.register = async (req, res, next) => {
-  const userdata = req.body;
-  console.log(userdata);
   try {
-    if (userdata.password) {
-      if (!validator.isEmail(userdata.email)) {
-        return res.status(400).send("Enter a valid email");
-      }
-      if (!validator.isStrongPassword(userdata.password)) {
-        return res.status(400).send("Enter a strong password");
-      }
+    const userdata = req.body;
+
+    // Validate email
+    if (!validator.isEmail(userdata.email)) {
+      return res.status(400).json({ error: "Invalid email address" });
     }
 
+    // Validate password strength
+    if (!validator.isStrongPassword(userdata.password)) {
+      return res.status(400).json({
+        error:
+          "Weak password. Must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.",
+      });
+    }
+
+    // Check if the user already exists
     const existingUser = await users.findOne({ email: userdata.email });
     if (existingUser) {
-      return res.status(400).send("User already exists");
+      return res.status(400).json({ error: "User already exists" });
     }
 
+    // Hash the password
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(userdata.password, salt);
+
+    // Generate OTP
+    let otp = Math.floor(Math.random() * 10000);
+    otp = otp.toString().padStart(4, "0");
+
+    // Create a new user
     const user = new users({
       username: userdata.username,
       email: userdata.email,
       password: hash,
+      otp: otp,
     });
 
-    const newuser = await user.save();
-    const jwttoken = jwt.sign({ userId: newuser._id }, process.env.JWTSECRET);
+    // Save the user to the database
+    const newUser = await user.save();
 
-    res.status(200).json({ email: newuser.email, jwttoken });
-  } catch (error) {
-    res.status(500).json("Failed to save user");
-  }
-};
-
-exports.auth = async (req, res, next) => {
-  const userdata = req.body;
-  console.log(userdata);
-
-  let otp = Math.floor(Math.random() * 10000);
-
-  otp = otp.toString().padStart(4, '0');
-
-  try {
+    // Send OTP via email
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -65,25 +64,50 @@ exports.auth = async (req, res, next) => {
       },
     });
 
-    console.log(transporter);
     const mailOptions = {
       from: "ghattiganesh8@gmail.com",
-      to: "dr.srghatti@rediffmail.com",
-      subject: "Hello subbu",
+      to: `${userdata.email}`,
+      subject: "OTP from Omniscent Perspectives",
       text: `Your otp is ${otp}`,
     };
-    console.log(mailOptions);
 
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error("Error:", error.message);
-      } else {
-        console.log("Email sent:", info.response);
-      }
-    });
+    await transporter.sendMail(mailOptions);
 
-    res.status(200).json({ transporter, mailOptions });
+    // Respond with success
+    res.status(200).json({ email: newUser.email, username: newUser.username });
   } catch (error) {
-    res.status(500).json("Failed to save user");
+    console.error("Error:", error.message);
+    res.status(500).json({ error: "Failed to register user" });
+  }
+};
+
+exports.auth = async (req, res, next) => {
+  try {
+    const userdata = req.body;
+    console.log(userdata);
+
+    const existingUser = await users.findOne({ email: userdata.email });
+
+    if (!existingUser) {
+      return res.status(400).json({ error: "User doesn't exist" });
+    }
+    console.log(typeof userdata.otp,typeof existingUser.otp)
+    if (userdata.otp === existingUser.otp) {
+      console.log("object")
+      const jwttoken = jwt.sign(
+        { userId: existingUser._id },
+        process.env.JWTSECRET
+      );
+      res.status(200).json({
+        email: existingUser.email,
+        username: existingUser.username,
+        jwttoken,
+      });
+    } else {
+      res.status(400).json({ error: "Invalid OTP" });
+    }
+  } catch (error) {
+    console.error("Error in authentication:", error);
+    res.status(500).json({ error: "Failed to authenticate user" });
   }
 };

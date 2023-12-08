@@ -8,6 +8,7 @@ const validator = require("validator");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const speakeasy = require("speakeasy");
+const axios = require('axios');
 
 const app = express();
 app.use(cors());
@@ -139,14 +140,82 @@ exports.login = async (req, res, next) => {
       process.env.JWTSECRET
     );
 
-    res
-      .status(200)
-      .json({
-        email: existingUser.email,
-        username: existingUser.username,
-        token: jwttoken,
-      });
+    res.status(200).json({
+      email: existingUser.email,
+      username: existingUser.username,
+      token: jwttoken,
+    });
   } catch (error) {
     res.status(500).json("Failed to get user");
+  }
+};
+
+exports.form = async (req, res, next) => {
+  try {
+    const formData = req.body;
+
+    const formDataToSend = new FormData();
+    formDataToSend.append("name", formData.name);
+    formDataToSend.append("companyName", formData.companyName);
+    formDataToSend.append("companySize", formData.companySize);
+    formDataToSend.append("designation", formData.designation);
+    formDataToSend.append("email", formData.email);
+    formDataToSend.append("phone", formData.phone);
+    formDataToSend.append("message", formData.message);
+
+    await axios.post(process.env.SCRIPT_URL, formDataToSend, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: "ghattiganesh8@gmail.com",
+        pass: "gecy jkfr fzmy dcwf",
+      },
+    });
+
+    const userMailOptions = {
+      from: "ghattiganesh8@gmail.com",
+      to: formData.email,
+      subject: "Thank you for contacting Omniscent Perspectives",
+      html: `
+        <h1>We will get back to you as soon as possible</h1>
+        <h3>Here are the details that you filled</h3>
+        <p>Name: ${formData.name}</p>
+        <p>Email: ${formData.email}</p>
+        <p>Phone: ${formData.phone}</p>
+        <p>Designation: ${formData.designation}</p>
+        <p>Message: ${formData.message}</p>
+        <p>Company Name: ${formData.companyName}</p>
+        <p>Company Size: ${formData.companySize}</p>
+      `,
+    };
+
+    const adminMailOptions = {
+      from: "ghattiganesh8@gmail.com",
+      to: "ghattiganesh8@gmail.com",
+      subject: "User has contacted you",
+      html: `
+        <h1>Details filled by the user are</h1>
+        <p>Name: ${formData.name}</p>
+        <p>Email: ${formData.email}</p>
+        <p>Phone: ${formData.phone}</p>
+        <p>Designation: ${formData.designation}</p>
+        <p>Message: ${formData.message}</p>
+        <p>Company Name: ${formData.companyName}</p>
+        <p>Company Size: ${formData.companySize}</p>
+      `,
+    };
+
+    await transporter.sendMail(userMailOptions);
+    await transporter.sendMail(adminMailOptions);
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };

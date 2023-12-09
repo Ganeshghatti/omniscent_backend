@@ -8,13 +8,13 @@ const validator = require("validator");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const speakeasy = require("speakeasy");
-const axios = require('axios');
+const axios = require("axios");
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-const authotp = async (email, otp) => {
+const authotp = async (email, otp, username) => {
   try {
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -27,8 +27,15 @@ const authotp = async (email, otp) => {
     const mailOptions = {
       from: "ghattiganesh8@gmail.com",
       to: `${email}`,
-      subject: "OTP from Omniscent Perspectives",
-      text: `Your otp is ${otp}`,
+      subject: "Your One-Time Password (OTP) for Signup",
+      html: `
+        <p>Dear ${username}</p>
+        <p>Thank you for choosing Omniscient Perspectives. To proceed with your login, please use the following One-Time Password (OTP): </p>
+        <h2>${otp}</h2>
+        <p>Please note that this OTP is valid for only 15 minutes and for one-time use only. If you did not request this code, you can safely ignore this mail </p>
+        <p>Warm regards,</p>
+        <p>The Omniscient Perspectives Team </p>
+      `,
     };
 
     await transporter.sendMail(mailOptions);
@@ -42,7 +49,6 @@ const authotp = async (email, otp) => {
 exports.register = async (req, res, next) => {
   try {
     const userdata = req.body;
-    console.log(userdata);
 
     if (!validator.isEmail(userdata.email)) {
       return res.status(400).json({ error: "Invalid email address" });
@@ -75,7 +81,7 @@ exports.register = async (req, res, next) => {
 
     const newUser = await user.save();
 
-    const emailSent = await authotp(userdata.email, otp);
+    const emailSent = await authotp(userdata.email, otp, userdata.username);
     if (!emailSent) {
       return res.status(500).json({ error: "Failed to send OTP email" });
     }
@@ -103,6 +109,28 @@ exports.auth = async (req, res, next) => {
         { userId: existingUser._id },
         process.env.JWTSECRET
       );
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: "ghattiganesh8@gmail.com",
+          pass: "gecy jkfr fzmy dcwf",
+        },
+      });
+  
+      const mailOptions = {
+        from: "ghattiganesh8@gmail.com",
+        to: `${userdata.email}`,
+        subject: "Welcome to Omniscient Perspectives!",
+        html: `
+          <p>Dear ${userdata.username}</p>
+          <p>Congratulations and welcome to Omniscient Perspectives! We are thrilled to have you on board. Get ready to explore and engage with our community. </p>
+          <p>If you have any questions or need assistance, feel free to reach out to our support team. We're here to help!  </p>
+          <p>Best wishes, </p>
+          <p>The Omniscient Perspectives Team </p>
+        `,
+      };
+  
+      await transporter.sendMail(mailOptions);
       res.status(200).json({
         email: existingUser.email,
         username: existingUser.username,
@@ -180,33 +208,41 @@ exports.form = async (req, res, next) => {
     const userMailOptions = {
       from: "ghattiganesh8@gmail.com",
       to: formData.email,
-      subject: "Thank you for contacting Omniscent Perspectives",
+      subject: "Thank You for Contacting Omniscient Perspectives",
       html: `
-        <h1>We will get back to you as soon as possible</h1>
-        <h3>Here are the details that you filled</h3>
-        <p>Name: ${formData.name}</p>
+        <p>Dear ${formData.name}</p>
+        <p>We have received your submission and thank you for reaching out to us. Our team is currently reviewing your query and will get back to you as soon as possible. </p>
+        <h4>Details of Your Submission:</h4>
         <p>Email: ${formData.email}</p>
         <p>Phone: ${formData.phone}</p>
         <p>Designation: ${formData.designation}</p>
         <p>Message: ${formData.message}</p>
         <p>Company Name: ${formData.companyName}</p>
         <p>Company Size: ${formData.companySize}</p>
+        <p>Your interest and engagement are greatly appreciated. </p>
+        <p>Warm regards,  </p>
+        <p>The Omniscient Perspectives Team </p>
       `,
     };
 
     const adminMailOptions = {
       from: "ghattiganesh8@gmail.com",
       to: "ghattiganesh8@gmail.com",
-      subject: "User has contacted you",
+      subject: "New User Contact Alert",
       html: `
-        <h1>Details filled by the user are</h1>
-        <p>Name: ${formData.name}</p>
+        <p>Dear Ramakrishna,  </p>
+        <p>We wanted to inform you that a new user has just filled out the contact form. Here are the details for your review and action: </p>
+        <p>A duplicate of these details is also stored in your Google Sheet.</p>
+        <p>User's Name : ${formData.name}</p>
         <p>Email: ${formData.email}</p>
         <p>Phone: ${formData.phone}</p>
         <p>Designation: ${formData.designation}</p>
         <p>Message: ${formData.message}</p>
         <p>Company Name: ${formData.companyName}</p>
         <p>Company Size: ${formData.companySize}</p>
+        <p>Please ensure a prompt and effective response to maintain our standard of excellence. </p>
+        <p>Best, </p>
+        <p>Omniscient Perspectives System Notification </p>
       `,
     };
 

@@ -51,10 +51,10 @@ exports.register = async (req, res, next) => {
     const userdata = req.body;
 
     if (!validator.isEmail(userdata.email)) {
-      return res.status(400).json({ error: "Invalid email address" });
+      return res.status(400).send({ error: "Invalid email address" });
     }
     if (!validator.isStrongPassword(userdata.password)) {
-      return res.status(400).json({
+      return res.status(400).send({
         error:
           "Weak password. Must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.",
       });
@@ -63,13 +63,13 @@ exports.register = async (req, res, next) => {
     const existingUser = await users.findOne({ email: userdata.email });
 
     if (existingUser) {
-      return res.status(400).json({ error: "User already exists" });
+      return res.status(400).send({ error: "User already exists" });
     }
 
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(userdata.password, salt);
 
-    let otp = Math.floor(Math.random() * 10000);
+    let otp = Math.floor(1000 + Math.random() * 9000);
     otp = otp.toString().padStart(4, "0");
 
     const user = new users({
@@ -83,27 +83,26 @@ exports.register = async (req, res, next) => {
 
     const emailSent = await authotp(userdata.email, otp, userdata.username);
     if (!emailSent) {
-      return res.status(500).json({ error: "Failed to send OTP email" });
+      return res.status(500).send({ error: "Failed to send OTP email" });
     }
 
     res.status(200).json({ email: newUser.email, username: newUser.username });
   } catch (error) {
     console.error("Error:", error.message);
-    res.status(500).json({ error: "Failed to register user" });
+    res.status(500).send({ error: "Failed to register user" });
   }
 };
 
 exports.auth = async (req, res, next) => {
   try {
     const userdata = req.body;
-    console.log(userdata);
 
     const existingUser = await users.findOne({ email: userdata.email });
 
     if (!existingUser) {
-      return res.status(400).json({ error: "User doesn't exist" });
+      return res.status(400).send({ error: "User doesn't exist" });
     }
-
+console.log(userdata.otp, existingUser.otp)
     if (userdata.otp === existingUser.otp) {
       const jwttoken = jwt.sign(
         { userId: existingUser._id },
@@ -116,7 +115,7 @@ exports.auth = async (req, res, next) => {
           pass: "gecy jkfr fzmy dcwf",
         },
       });
-  
+
       const mailOptions = {
         from: "ghattiganesh8@gmail.com",
         to: `${userdata.email}`,
@@ -129,7 +128,7 @@ exports.auth = async (req, res, next) => {
           <p>The Omniscient Perspectives Team </p>
         `,
       };
-  
+
       await transporter.sendMail(mailOptions);
       res.status(200).json({
         email: existingUser.email,
@@ -137,11 +136,11 @@ exports.auth = async (req, res, next) => {
         jwttoken,
       });
     } else {
-      res.status(400).json({ error: "Invalid OTP" });
+      res.status(400).send({ error: "Invalid OTP" });
     }
   } catch (error) {
     console.error("Error in authentication:", error);
-    res.status(500).json({ error: "Failed to authenticate user" });
+    res.status(500).send({ error: "Failed to authenticate user" });
   }
 };
 
@@ -174,7 +173,7 @@ exports.login = async (req, res, next) => {
       token: jwttoken,
     });
   } catch (error) {
-    res.status(500).json("Failed to get user");
+    res.status(500).send("Failed to get user");
   }
 };
 
@@ -249,9 +248,9 @@ exports.form = async (req, res, next) => {
     await transporter.sendMail(userMailOptions);
     await transporter.sendMail(adminMailOptions);
 
-    res.status(200).json({ success: true });
+    res.status(200).send({ success: true });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).send({ error: "Internal Server Error" });
   }
 };

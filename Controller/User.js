@@ -70,7 +70,7 @@ exports.register = async (req, res, next) => {
         existingUser.password
       );
       if (!match) {
-        return res.status(400).send("Wrong password");
+        return res.status(400).send({ error: "Wrong password" });
       }
       let otp = Math.floor(1000 + Math.random() * 9000);
       otp = otp.toString().padStart(4, "0");
@@ -79,7 +79,7 @@ exports.register = async (req, res, next) => {
         return res.status(500).send({ error: "Failed to send OTP email" });
       }
       existingUser.otp = otp;
-      existingUser.username=userdata.username
+      existingUser.username = userdata.username;
       await existingUser.save();
 
       res.status(200).json({
@@ -123,7 +123,7 @@ exports.register = async (req, res, next) => {
 exports.auth = async (req, res, next) => {
   try {
     const userdata = req.body;
-
+    console.log(userdata);
     const existingUser = await users.findOne({ email: userdata.email });
 
     if (!existingUser) {
@@ -209,7 +209,7 @@ exports.login = async (req, res, next) => {
       email: existingUser.email,
       username: existingUser.username,
       token: jwttoken,
-      isVerified:existingUser.isVerified
+      isVerified: existingUser.isVerified,
     });
   } catch (error) {
     res.status(500).send("Failed to get user");
@@ -219,7 +219,7 @@ exports.login = async (req, res, next) => {
 exports.form = async (req, res, next) => {
   try {
     const formData = req.body;
-
+    console.log(formData);
     const formDataToSend = new FormData();
     formDataToSend.append("name", formData.name);
     formDataToSend.append("companyName", formData.companyName);

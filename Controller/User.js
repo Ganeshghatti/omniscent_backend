@@ -9,6 +9,7 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const speakeasy = require("speakeasy");
 const axios = require("axios");
+const moment = require("moment");
 
 const app = express();
 app.use(cors());
@@ -228,6 +229,8 @@ exports.form = async (req, res, next) => {
     formDataToSend.append("email", formData.email);
     formDataToSend.append("phone", formData.phone);
     formDataToSend.append("message", formData.message);
+    formDataToSend.append("Date", moment().add(10, "days").calendar());
+    formDataToSend.append("Time", moment().format("LT"));
 
     await axios.post(process.env.SCRIPT_URL, formDataToSend, {
       headers: {

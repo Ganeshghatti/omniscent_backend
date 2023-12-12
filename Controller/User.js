@@ -62,31 +62,58 @@ exports.register = async (req, res, next) => {
 
     const existingUser = await users.findOne({ email: userdata.email });
 
-    if (existingUser) {
+    if (existingUser && existingUser.isVerified) {
       return res.status(400).send({ error: "User already exists" });
+    } else if (existingUser && !existingUser.isVerified) {
+      const match = await bcrypt.compare(
+        userdata.password,
+        existingUser.password
+      );
+      if (!match) {
+        return res.status(400).send("Wrong password");
+      }
+      let otp = Math.floor(1000 + Math.random() * 9000);
+      otp = otp.toString().padStart(4, "0");
+      const emailSent = await authotp(userdata.email, otp, userdata.username);
+      if (!emailSent) {
+        return res.status(500).send({ error: "Failed to send OTP email" });
+      }
+      existingUser.otp = otp;
+      existingUser.username=userdata.username
+      await existingUser.save();
+
+      res.status(200).json({
+        email: existingUser.email,
+        username: existingUser.username,
+        isVerified: existingUser.isVerified,
+      });
+    } else {
+      const salt = await bcrypt.genSalt(10);
+      const hash = await bcrypt.hash(userdata.password, salt);
+
+      let otp = Math.floor(1000 + Math.random() * 9000);
+      otp = otp.toString().padStart(4, "0");
+
+      const user = new users({
+        username: userdata.username,
+        email: userdata.email,
+        password: hash,
+        otp: otp,
+      });
+
+      const newUser = await user.save();
+
+      const emailSent = await authotp(userdata.email, otp, userdata.username);
+      if (!emailSent) {
+        return res.status(500).send({ error: "Failed to send OTP email" });
+      }
+      console.log(newUser.isVerified);
+      res.status(200).json({
+        email: newUser.email,
+        username: newUser.username,
+        isVerified: newUser.isVerified,
+      });
     }
-
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(userdata.password, salt);
-
-    let otp = Math.floor(1000 + Math.random() * 9000);
-    otp = otp.toString().padStart(4, "0");
-
-    const user = new users({
-      username: userdata.username,
-      email: userdata.email,
-      password: hash,
-      otp: otp,
-    });
-
-    const newUser = await user.save();
-
-    const emailSent = await authotp(userdata.email, otp, userdata.username);
-    if (!emailSent) {
-      return res.status(500).send({ error: "Failed to send OTP email" });
-    }
-
-    res.status(200).json({ email: newUser.email, username: newUser.username });
   } catch (error) {
     console.error("Error:", error.message);
     res.status(500).send({ error: "Failed to register user" });
@@ -102,7 +129,10 @@ exports.auth = async (req, res, next) => {
     if (!existingUser) {
       return res.status(400).send({ error: "User doesn't exist" });
     }
-console.log(userdata.otp, existingUser.otp)
+    if (existingUser.isVerified) {
+      return res.status(400).send({ error: "User is already verified" });
+    }
+    console.log(userdata.otp, existingUser.otp);
     if (userdata.otp === existingUser.otp) {
       const jwttoken = jwt.sign(
         { userId: existingUser._id },
@@ -130,10 +160,15 @@ console.log(userdata.otp, existingUser.otp)
       };
 
       await transporter.sendMail(mailOptions);
+
+      existingUser.isVerified = true;
+      await existingUser.save();
+
       res.status(200).json({
         email: existingUser.email,
         username: existingUser.username,
         jwttoken,
+        isVerified: existingUser.isVerified,
       });
     } else {
       res.status(400).send({ error: "Invalid OTP" });
@@ -162,6 +197,9 @@ exports.login = async (req, res, next) => {
     if (!match) {
       return res.status(400).send("Wrong password");
     }
+    if (!existingUser.isVerified) {
+      return res.status(400).send("Not a verified User , Please Signup!");
+    }
     const jwttoken = jwt.sign(
       { userId: existingUser._id },
       process.env.JWTSECRET
@@ -171,6 +209,7 @@ exports.login = async (req, res, next) => {
       email: existingUser.email,
       username: existingUser.username,
       token: jwttoken,
+      isVerified:existingUser.isVerified
     });
   } catch (error) {
     res.status(500).send("Failed to get user");

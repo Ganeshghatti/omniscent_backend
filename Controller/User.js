@@ -10,6 +10,8 @@ const nodemailer = require("nodemailer");
 const speakeasy = require("speakeasy");
 const axios = require("axios");
 const moment = require("moment");
+const FormData = require("form-data");
+const { sendErrorEmail } = require("../utils/Errormail");
 
 const app = express();
 app.use(cors());
@@ -43,14 +45,15 @@ const authotp = async (email, otp, username) => {
     return true;
   } catch (error) {
     console.error("Error sending email:", error.message);
+    sendErrorEmail(userdata.username, userdata.email, "Failed to send OTP");
     return false;
   }
 };
 
 exports.register = async (req, res, next) => {
-  try {
-    const userdata = req.body;
+  const userdata = req.body;
 
+  try {
     if (!validator.isEmail(userdata.email)) {
       return res.status(400).send({ error: "Invalid email address" });
     }
@@ -108,7 +111,6 @@ exports.register = async (req, res, next) => {
       if (!emailSent) {
         return res.status(500).send({ error: "Failed to send OTP email" });
       }
-      console.log(newUser.isVerified);
       res.status(200).json({
         email: newUser.email,
         username: newUser.username,
@@ -117,14 +119,19 @@ exports.register = async (req, res, next) => {
     }
   } catch (error) {
     console.error("Error:", error.message);
+    sendErrorEmail(
+      userdata.username,
+      userdata.email,
+      "New user tried to Register , But failed!"
+    );
     res.status(500).send({ error: "Failed to register user" });
   }
 };
 
 exports.auth = async (req, res, next) => {
+  const userdata = req.body;
+
   try {
-    const userdata = req.body;
-    console.log(userdata);
     const existingUser = await users.findOne({ email: userdata.email });
 
     if (!existingUser) {
@@ -133,7 +140,7 @@ exports.auth = async (req, res, next) => {
     if (existingUser.isVerified) {
       return res.status(400).send({ error: "User is already verified" });
     }
-    console.log(userdata.otp, existingUser.otp);
+
     if (userdata.otp === existingUser.otp) {
       const jwttoken = jwt.sign(
         { userId: existingUser._id },
@@ -213,14 +220,19 @@ exports.login = async (req, res, next) => {
       isVerified: existingUser.isVerified,
     });
   } catch (error) {
+    sendErrorEmail(
+      userdata.name,
+      userdata.email,
+      "User tried to login. Internal server error"
+    );
     res.status(500).send("Failed to get user");
   }
 };
 
 exports.form = async (req, res, next) => {
+  const formData = req.body;
+
   try {
-    const formData = req.body;
-    console.log(formData);
     const formDataToSend = new FormData();
     formDataToSend.append("name", formData.name);
     formDataToSend.append("companyName", formData.companyName);
@@ -292,7 +304,11 @@ exports.form = async (req, res, next) => {
 
     res.status(200).send({ success: true });
   } catch (error) {
-    console.error(error);
+    sendErrorEmail(
+      formData.name,
+      formData.email,
+      "User tried to submit the form. Internal server error"
+    );
     res.status(500).send({ error: "Internal Server Error" });
   }
 };

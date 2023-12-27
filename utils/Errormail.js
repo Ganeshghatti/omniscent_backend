@@ -23,7 +23,7 @@ const sendErrorEmail = async (username, email, action) => {
           username ? username : "Username not available"
         } with email ${
         email ? email : "Email not available"
-      }  ${action}.</p>
+      } attempted to ${action} but failed.</p>
         <p>Message: ${
             action ? action : "No message provided"
         }</p>        

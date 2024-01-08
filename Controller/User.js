@@ -189,7 +189,7 @@ exports.auth = async (req, res, next) => {
 
 exports.login = async (req, res, next) => {
   const userdata = req.body;
-
+  console.log(userdata);
   try {
     if (!validator.isEmail(userdata.email)) {
       return res.status(400).send("Enter a valid email");

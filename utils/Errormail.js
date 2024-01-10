@@ -8,14 +8,14 @@ const sendErrorEmail = async (username, email, action) => {
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: "ghattiganesh8@gmail.com",
-        pass: "gecy jkfr fzmy dcwf",
+        user: "ramakrishnan@omniscientperspectives.in",
+        pass: "bfhz luxy dbio ydxv",
       },
     });
 
     const mailOptions = {
-      from: "ghattiganesh8@gmail.com",
-      to: "ganeshghatti6@gmail.com, ghattiganesh8@gmail.com",
+      from: "ramakrishnan@omniscientperspectives.in",
+      to: "ramakrishnan@omniscientperspectives.in",
       subject: "Error Alert - Action Failed",
       html: `
         <p>Error alert</p>

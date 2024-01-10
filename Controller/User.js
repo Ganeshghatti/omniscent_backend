@@ -22,13 +22,13 @@ const authotp = async (email, otp, username) => {
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: "ghattiganesh8@gmail.com",
-        pass: "gecy jkfr fzmy dcwf",
+        user: "ramakrishnan@omniscientperspectives.in",
+        pass: "bfhz luxy dbio ydxv",
       },
     });
 
     const mailOptions = {
-      from: "ghattiganesh8@gmail.com",
+      from: "ramakrishnan@omniscientperspectives.in",
       to: `${email}`,
       subject: "Your One-Time Password (OTP) for Signup",
       html: `
@@ -149,13 +149,13 @@ exports.auth = async (req, res, next) => {
       const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: {
-          user: "ghattiganesh8@gmail.com",
-          pass: "gecy jkfr fzmy dcwf",
+          user: "ramakrishnan@omniscientperspectives.in",
+          pass: "bfhz luxy dbio ydxv",
         },
       });
 
       const mailOptions = {
-        from: "ghattiganesh8@gmail.com",
+        from: "ramakrishnan@omniscientperspectives.in",
         to: `${userdata.email}`,
         subject: "Welcome to Omniscient Perspectives!",
         html: `
@@ -253,13 +253,13 @@ exports.form = async (req, res, next) => {
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: "ghattiganesh8@gmail.com",
-        pass: "gecy jkfr fzmy dcwf",
+        user: "ramakrishnan@omniscientperspectives.in",
+        pass: "bfhz luxy dbio ydxv",
       },
     });
 
     const userMailOptions = {
-      from: "ghattiganesh8@gmail.com",
+      from: "ramakrishnan@omniscientperspectives.in",
       to: formData.email,
       subject: "Thank You for Contacting Omniscient Perspectives",
       html: `
@@ -279,8 +279,8 @@ exports.form = async (req, res, next) => {
     };
 
     const adminMailOptions = {
-      from: "ghattiganesh8@gmail.com",
-      to: "ghattiganesh8@gmail.com",
+      from: "ramakrishnan@omniscientperspectives.in",
+      to: "ramakrishnan@omniscientperspectives.in",
       subject: "New User Contact Alert",
       html: `
         <p>Dear Ramakrishna,  </p>

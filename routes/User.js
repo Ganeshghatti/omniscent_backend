@@ -6,6 +6,6 @@ const requireAuth=require('../middleware/User')
 router.route("/register").post(register);
 router.route("/auth").post(auth);
 router.route("/login").post(login);
-router.route("/form").post(requireAuth,form);
+router.route("/form").post(form);
 
 module.exports = router;

@@ -304,11 +304,11 @@ exports.form = async (req, res, next) => {
 
     res.status(200).send({ success: true });
   } catch (error) {
+    res.status(500).send({ error: "Internal Server Error" });
     sendErrorEmail(
       formData.name,
       formData.email,
       "User tried to submit the form. Internal server error"
     );
-    res.status(500).send({ error: "Internal Server Error" });
   }
 };
